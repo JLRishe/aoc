@@ -1,0 +1,19 @@
+{
+  "name": "aoc",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "lodash": "^4.17.4",
+    "ramda": "^0.25.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git"
+  },
+  "author": "Jimmy Rishe",
+  "license": "MIT"
+}

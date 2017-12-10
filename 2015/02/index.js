@@ -1,3 +1,4 @@
+const { compose, map, sum } = require('ramda');
 var _ = require('lodash');
 
 // parses a single present. a present is represented as an array of 3 integers, one for each dimension
@@ -16,8 +17,16 @@ var wrapRibbon = present => _.min(permute3(present, (l, r) => 2 * (l + r)));
 var bowRibbon = present => present.reduce((l, n) => l * n);
 var ribbon = present => wrapRibbon(present) + bowRibbon(present);
 
-module.exports = (lines) => {
-    var presents = lines.map(parsePresent);
+const totalPresentProp = calcProp => compose(
+    sum,
+    map(calcProp),
+    map(parsePresent)
+);
 
-    return [_.sum(presents, paper), _.sum(presents, ribbon)];
+const p1 = totalPresentProp(paper);
+
+const p2 = totalPresentProp(ribbon);
+
+module.exports = {
+    ps: [p1, p2]
 };
