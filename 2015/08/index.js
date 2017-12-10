@@ -1,3 +1,4 @@
+const { compose, map, sum } = require('ramda');
 var _ = require('lodash');
 
 var literalToValue = 
@@ -20,7 +21,9 @@ var valueToLiteral =
 
 var reverseSizeDifference = value => valueToLiteral(value).length - value.length;
 
-module.exports = lines => [
-    _.sum(lines, sizeDifference),
-    _.sum(lines, reverseSizeDifference)
-];
+const p1 = compose(sum, map(sizeDifference));
+const p2 = compose(sum, map(reverseSizeDifference));
+
+module.exports = {
+    ps: [p1, p2]
+};

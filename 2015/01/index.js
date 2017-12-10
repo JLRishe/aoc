@@ -1,8 +1,15 @@
+const { __, compose, map, prop, sum } = require('ramda');
 var _ = require('lodash');
 
-var map = { '(': 1, ')': -1 };
+var stepMap = { '(': 1, ')': -1 };
 
-module.exports = (input) => {
+const lineToDeltas = map(prop(__, stepMap));
+
+const p1 = compose(sum, lineToDeltas);
+
+module.exports = {
+    ps: [p1]
+};/*(input) => {
     var deltas = _.map(input, step => map[step]);
 
     // first answer        
@@ -18,4 +25,4 @@ module.exports = (input) => {
     );
     
     return [finished, basementStep];
-};
+};*/
