@@ -1,0 +1,6 @@
+Washington to New Jersey = 10
+Washington to Florida = 4
+Washington to LA = 2
+New Jersey to LA = 3
+New Jersey to Florida = 10
+LA to Florida = 1
