@@ -1,4 +1,6 @@
+const { compose, map, curry, sum, reduce } = require('ramda');
 var util = require('../shared/util');
+const { probe, add1 } = require('../shared');
 var _ = require('lodash');
 
 var createLights = 
@@ -42,25 +44,36 @@ function lightController(turnOnAction, turnOffAction, toggleAction) {
         process(lights, actionMap[instruction.action], instruction.start, instruction.end);
 }
 
-var adjustLights = 
-    (instructions, lightController) =>
-        _.sum(
-            instructions.reduce(
-                (ls, ins) => lightController(ins, ls), 
-                createLights(1000, 1000)
-            ),
-            _.sum
-        );
+var adjustLights = curry((controller, instructions) => compose(
+    sum,
+    map(sum),
+    reduce(
+        (ls, ins) => controller(ins, ls), 
+        createLights(1000, 1000)
+    )
+)(instructions));
+        
+const adjust = (turnOn, turnOff, toggle) => compose(
+    adjustLights(lightController(turnOn, turnOff, toggle)),
+    map(parseInstruction)
+);
 
-module.exports = (lines) => {
-    var instructions = lines.map(parseInstruction);
+const p1 = adjust(
+    () => 1, 
+    () => 0, 
+    val => val ? 0 : 1
+);
 
-    var firstController = lightController(() => 1, () => 0, val => val ? 0 : 1);
-    
-    var secondController = lightController(val => val + 1, val => Math.max(0, val - 1), val => val + 2);
-    
-    return [
-        adjustLights(instructions, firstController),
-        adjustLights(instructions, secondController)
-    ];
-};
+const p2 = adjust(
+    add1, 
+    val => Math.max(0, val - 1), 
+    compose(add1, add1)
+);
+
+
+module.exports = {
+    solution: {
+        type: 'lines',
+        ps: [p1, p2]
+    }
+}

@@ -1,3 +1,4 @@
+const { compose, filter, length } = require('ramda');
 var util = require('../shared/util');
 var _ = require('lodash');
 var testString = util.testString;
@@ -18,8 +19,14 @@ var hasSeparatedDuplicate = str => testString(str, ch => ch(0) === ch(2));
 
 var isNice2 = str => hasRepeatedPair(str) && hasSeparatedDuplicate(str);
 
+const countMatches = pred => compose(length, filter(pred));
 
-module.exports = (lines) => [
-    lines.filter(isNice).length,
-    lines.filter(isNice2).length
-];
+const p1 = countMatches(isNice);
+const p2 = countMatches(isNice2);
+
+module.exports = {
+    solution: {
+        type: 'lines',
+        ps: [p1, p2]
+    }
+};
