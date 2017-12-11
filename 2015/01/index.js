@@ -1,5 +1,6 @@
-const { __, compose, map, prop, sum } = require('ramda');
+const { __, compose, map, prop, sum, lt, applySpec, add } = require('ramda');
 var _ = require('lodash');
+const { repeatUntil, add1 } = require('../shared');
 
 var stepMap = { '(': 1, ')': -1 };
 
@@ -7,22 +8,20 @@ const lineToDeltas = map(prop(__, stepMap));
 
 const p1 = compose(sum, lineToDeltas);
 
-module.exports = {
-    ps: [p1]
-};/*(input) => {
-    var deltas = _.map(input, step => map[step]);
+const negFloor = compose(lt(__, 0), prop('floor'));
 
-    // first answer        
-    var finished = _.sum(deltas);
+const p2 = (line) => {
+    const deltas = lineToDeltas(line);
     
-    // second answer
-    var basementStep = deltas.reduce((last, next, i) => 
-        typeof last === 'string'
-            ? last 
-            : last < 0 
-                ? i.toString() 
-                : last + next
+    const stoppedAt = repeatUntil(
+        ({ floor, i }) => ({ floor: add(floor, prop(i, deltas)), i: add1(i) }),
+        negFloor,
+        { floor: 0, i: 0 }
     );
     
-    return [finished, basementStep];
-};*/
+    return stoppedAt.i;
+};
+
+module.exports = {
+    ps: [p1, p2]
+};
