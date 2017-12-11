@@ -1,13 +1,22 @@
+const { __, compose, map, reduce, reduceWhile, curry, repeat, length, sum, applySpec, join, prop, concat, equals, takeWhile, head, identity, memoizeWith } = require('ramda');
 var util = require('../shared/util');
+const { add1, applyPattern } = require('../shared');
 
+// String -> String -> Number
+const findRun = (ch, str) => compose(
+    length,
+    head,
+    applyPattern(new RegExp(`^${ch}*`))
+)(str);
+
+// String -> [{count: Number, char: String}]
 function getRuns(str) {
     var runs = [],
-        runLength,
         ch;
     
     while (str.length) {
         ch = str[0];
-        runLength = util.countWhile(i => str[i] === ch);
+        const runLength = findRun(ch, str);
         runs.push({ count: runLength, char: ch});
         str = str.substring(runLength);
     }
@@ -15,9 +24,31 @@ function getRuns(str) {
     return runs;
 }
 
-var lookAndSay = str => getRuns(str).map(r => r.count + r.char).join('');
+// { count: Number, char: String }
+const combineRun = compose(
+    join(''),
+    applySpec([prop('count'), prop('char')])
+);
 
-var input = '1321131112';
+// String -> String
+const lookAndSay = compose(
+    join(''),
+    map(combineRun),
+    getRuns
+);
 
-console.log(util.applyN(input, lookAndSay, 40).length);
-console.log(util.applyN(input, lookAndSay, 50).length);
+// Number -> String -> Number
+const runLookAndSay = times => compose(
+    length,
+    reduce(lookAndSay, __, repeat(0, times))
+);
+
+const p1 = runLookAndSay(40);
+const p2 = runLookAndSay(50);
+
+module.exports = {
+    solution: {
+        type: 'input',
+        ps: [p1, p2]
+    }
+};
