@@ -1,5 +1,4 @@
-const { compose, map, curry, merge, head, last, keys, sortBy, identity, values, length, groupBy, prop, reduce, times } = require('ramda');
-var util = require('../shared/util');
+const { compose, map, curry, merge, head, last, keys, sortBy, identity, values, length, groupBy, prop, reduce, times, applySpec } = require('ramda');
 const { probe, applyPattern, add1 } = require('../shared');
 
 const reindeerPattern = /^([a-zA-z]+) can fly (\d+) km\/s for (\d+) seconds, but then must rest for (\d+) seconds\.$/;
@@ -42,10 +41,18 @@ const p1 = compose(
 // Returns an array of all winners (with repeats) of each second
 // If reindeer A was in the lead during 10 different seconds, it will be in the results 10 times.
 // [Reindeer] -> [Reindeer]
-const pointsRace = reindeers => reduce(
+const listPointWinners = reindeers => reduce(
     (winners, seconds) => [...winners, ...(race(seconds, reindeers).winners)],
     [],
     times(add1, raceTime)
+);
+
+// [Reindeer] -> [{ reindeer: Reindeer, points: Number }]
+const pointsRace = compose(
+    map(applySpec({ reindeer: head, points: length })),
+    values,
+    groupBy(prop('name')),
+    listPointWinners
 );
 
 // [Ord] -> Ord
@@ -54,9 +61,7 @@ const listMax = compose(last, sortBy(identity));
 // [String] -> Number
 const p2 = compose(
     listMax,
-    values,
-    map(length),
-    groupBy(prop('name')),
+    map(prop('points')),
     pointsRace,
     map(parseReindeer)
 );
