@@ -1,3 +1,4 @@
+const { compose, map, curry, head, tail, isEmpty } = require('ramda');
 var _ = require('lodash');
 
 var ingredientQty = (ing, qty) => ({ ing: ing, qty: qty });
@@ -14,7 +15,7 @@ function parseIngredient(line) {
 function totalIngredients(ingredientQuantities) {
     var totals = 
         _.range(5)
-            .map(i => _.sum(ingredientQuantities, iq => iq.qty * iq.ing.values[i]))
+            .map(i => _.sumBy(ingredientQuantities, iq => iq.qty * iq.ing.values[i]))
             .map(t => Math.max(0, t));
     
     return {
@@ -24,15 +25,15 @@ function totalIngredients(ingredientQuantities) {
     };
 }
 
-function pickMax(ingredients, tsp, test, chosen) {
-    var nextIng = ingredients[0],
-        remainder = ingredients.slice(1);
+const pickMax = (ingredients, tsp, test, chosen) => {
+    const nextIng = head(ingredients)
+    const remainder = tail(ingredients);
     
     chosen = chosen || [];
-    test = test || () => true;
+    test = test || (() => true);
         
-    if (!remainder.length) {
-        return totalIngredients(chosen.concat(ingredientQty(ingredients[0], tsp)));
+    if (isEmpty(remainder)) {
+        return totalIngredients([...chosen, ingredientQty(ingredients[0], tsp)]);
     }
     
     var options = 
@@ -46,15 +47,27 @@ function pickMax(ingredients, tsp, test, chosen) {
     ).filter(opt => opt && test(opt));
 
     return options.length
-        ? _.max(options, o => o.total)
+        ? _.maxBy(options, o => o.total)
         : null;
-}
+};
 
-module.exports = lines => {
-    var ingredients = lines.map(parseIngredient);
-    
-    return [
-        pickMax(ingredients, 100),
-        pickMax(ingredients, 100, opt => opt.calories === 500)
-    ];
+const startPickMaxWithTest = curry((tsp, test, ingredients) => pickMax(ingredients, tsp, test));
+
+const startPickMax = curry((tsp, ingredients) => startPickMaxWithTest(tsp, () => true, ingredients));
+
+const p1 = compose(
+    startPickMax(100),
+    map(parseIngredient)
+);
+
+const p2 = compose(
+    startPickMaxWithTest(100, opt => opt.calories === 500),
+    map(parseIngredient)
+);
+
+module.exports = {
+    solution: {
+        type: 'lines',
+        ps: [p1, p2]
+    }
 };
