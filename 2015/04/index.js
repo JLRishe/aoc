@@ -1,15 +1,28 @@
-const { __, curry } = require('ramda');
-var util = require('../shared/util');
+const { __, curry, compose, prop } = require('ramda');
+const { genInfinite, genFilter, genMap, genHead } = require('func-generators');
 const md5 = require('blueimp-md5');
 
-var startsWith = (value, prefix) => value.indexOf(prefix) === 0;
-var isMatch = (input, prefix) => startsWith(md5(input), prefix);
-var findPrefixMatch = curry((key, prefix) => util.countLoops(i => !isMatch(key + i, prefix)));
+// String -> Generator { i: Number, hash: String }
+const hashes = key => genMap(i => ({ i, hash: md5(key + i) }), genInfinite);
 
-const p1 = findPrefixMatch(__, '00000');
+// String -> String -> Boolean
+const startsWith = (value, prefix) => value.indexOf(prefix) === 0;
 
-const p2 = findPrefixMatch(__, '000000');
+// String -> String -> Number
+const findPrefixMatch = curry((prefix, key) => compose(
+    prop('i'),
+    genHead,
+    genFilter(h => startsWith(h.hash, prefix))
+)(hashes(key)));
+
+// String -> Number
+const p1 = findPrefixMatch('00000');
+
+// String -> Number
+const p2 = findPrefixMatch('000000');
 
 module.exports = {
-    ps: [p1, p2]
+    solution: {
+        ps: [p1, p2]
+    }
 };
