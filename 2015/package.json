@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "blueimp-md5": "^2.10.0",
+    "func-generators": "file:..\\..\\func-generators",
     "lodash": "^4.17.4",
     "ramda": "^0.25.0"
   },
