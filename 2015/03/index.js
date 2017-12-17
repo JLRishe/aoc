@@ -1,5 +1,4 @@
-const { __, compose, map, prop, applySpec, T, identity } = require('ramda');
-var _ = require('lodash');
+const { __, compose, curry, map, prop, applySpec, T, identity, converge, keys, length } = require('ramda');
 const { arrayFilter, probe } = require('../shared');
 
 var point = (x, y) => ({ x: x, y: y });
@@ -21,23 +20,27 @@ var walkPath =
     (grid, steps) => 
         steps.reduce((last, next) => takeStep(grid, last, next), point(0, 0));
 
-function walkPaths(paths) {
+const walkPaths = (paths) => {
     var grid = { '0x0': true };
     
     paths.forEach(p => walkPath(grid, p));
     
-    return _.size(grid);
-}    
+    return length(keys(grid));
+};
 
 const toDelta = prop(__, deltas);
+
+const buildPaths = curry((stepFilters, steps) => compose(
+    applySpec(map(arrayFilter, stepFilters)),
+    map(toDelta)
+)(steps));
 
 const santaSteps = (_, i) => i % 2 === 0;
 const robotSteps = (_, i) => i % 2 === 1;
 
 const walkStepTypes = stepFilters => compose(
     walkPaths,
-    applySpec(map(arrayFilter, stepFilters)),
-    map(toDelta)
+    buildPaths(stepFilters)
 );
 
 const p1 = walkStepTypes([T]);
@@ -45,5 +48,7 @@ const p1 = walkStepTypes([T]);
 const p2 = walkStepTypes([santaSteps, robotSteps]);
 
 module.exports = {
-    ps: [p1, p2]
+    solution: {
+        ps: [p1, p2]
+    }
 };
