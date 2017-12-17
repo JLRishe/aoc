@@ -1,19 +1,15 @@
-const { compose, memoizeWith, identity, prop, zip, uniq, length } = require('ramda');
-var util = require('../shared/util');
-var _ = require('lodash');
+const { compose, memoizeWith, identity, prop, zip, uniq, length, partial } = require('ramda');
 const { isValidPassword } = require('./passwordValidate');
 const { incrementPassword } = require('./passwordIncrement');
+const { genTransform, genFilter, genDrop, genHead } = require('func-generators');
 
-function applyUntil(start, op, test) {
-    var value = start;
-    
-    do { value = op(value); } while (!test(value));
-    
-    return value;
-}
-var nextValidPassword = memoizeWith(
+const nextValidPassword = memoizeWith(
     identity,
-    password => applyUntil(password, incrementPassword, isValidPassword)
+    s => compose(
+        genHead,
+        genFilter(isValidPassword),
+        genDrop(1)
+    )(genTransform(incrementPassword, s))
 );
 
 const p1 = nextValidPassword;
