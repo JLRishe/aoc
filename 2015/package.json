@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "aoc-runner": "file:..\\..\\aoc-runner",
     "blueimp-md5": "^2.10.0",
     "func-generators": "file:..\\..\\func-generators",
     "lodash": "^4.17.4",
@@ -11,7 +12,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "mocha test"
+    "test": "mocha test",
+    "runday": "node -e \"require('aoc-runner').runSolution(process.argv[1])\""
   },
   "repository": {
     "type": "git"
