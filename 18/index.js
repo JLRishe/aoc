@@ -1,59 +1,82 @@
-var util = require('../shared/util');
-var _ = require('lodash');
+const { compose, curry, map, sum, either } = require('ramda');
+const { genHead, genDrop, genTransform } = require('func-generators');
 
-function lightAt(lights, r, c) {
-    return r < 0 || r >= lights.length || c < 0 || c >= lights.length
-        ? 0
-        : lights[r][c];
-}
+// LightGrid is [[Boolean]]
+// Switcher is ((LightGrid, Number, Number, Boolean) => Boolean)
 
-function countNeighbors(lights, r, c) {
-    return lightAt(lights, r-1,c-1) + 
-    lightAt(lights, r-1,c) + 
-    lightAt(lights, r-1,c+1) + 
-    lightAt(lights, r,c-1) + 
-    lightAt(lights, r,c+1) + 
-    lightAt(lights, r+1,c-1) + 
-    lightAt(lights, r+1,c) + 
-    lightAt(lights, r+1,c+1);
-}
+// Number -> [*] -> Boolean
+const isOuterBound = (val, arr) => val === 0 || val === arr.length - 1;
+// Number -> [*] -> Boolean
+const isPastBounds = (val, arr) => val < 0 || val >= arr.length;
 
-function iterate(lights, switcher) {
-    return lights.map((row, r) => 
-        row.map((light, c) => switcher(lights, light, countNeighbors(lights, r, c), r, c))
-    );            
-}
+// LightGrid => Number -> Number -> Boolean
+const lightAt = (lights, r, c) => isPastBounds(r, lights) || isPastBounds(c, lights)
+    ? false
+    : lights[r][c];
 
-function printLights(lights) {
-    lights.forEach(r => console.log(r.join('')));
-    console.log();
-}
+// LightGrid -> Number -> Number -> Number
+const countNeighbors = (lights, r, c) =>
+    lightAt(lights, r-1, c-1) + 
+    lightAt(lights, r-1, c  ) + 
+    lightAt(lights, r-1, c+1) + 
+    lightAt(lights, r  , c-1) + 
+    lightAt(lights, r  , c+1) + 
+    lightAt(lights, r+1, c-1) + 
+    lightAt(lights, r+1, c  ) + 
+    lightAt(lights, r+1, c+1);
 
-var simpleSwitcher = 
-    (lights, light, neighbors, r, c) => neighbors === 3 || (light && neighbors === 2);
 
-var fixedCornersSwitcher = 
-    (lights, light, neighbors, r, c) => 
-        (r === 0 || r === lights.length - 1) && 
-        (c === 0 || c === lights.length - 1);
+// Switcher -> LightGrid -> LightGrid
+const iterate = curry((switcher, lights) => lights.map(
+    (row, r) => row.map((light, c) => switcher(lights, r, c, light))
+));
 
-var brokenSwitcher =
-    (lights, light, neighbors, r, c) => 
-        fixedCornersSwitcher(lights, light, neighbors, r, c) ||
-        simpleSwitcher(lights, light, neighbors, r, c);
-
-var adjustLights = 
-    (lights, times, switcher) =>
-        _.sum(util.applyN(lights, ls => iterate(ls, switcher), times), row => _.sum(row));
-
-module.exports = (lines) => {
-    var lights = lines.map(l => _.map(l, c => c === '#' ? 1 : 0));
+// Switcher
+const simpleSwitcher = (lights, r, c, light) => {
+    const neighbors = countNeighbors(lights, r, c);
     
-    var first = adjustLights(lights, 100, simpleSwitcher);
-    
-    var newLights = iterate(lights, (lights, light, neighbors, r, c) => fixedCornersSwitcher(lights, light, neighbors, r, c) || light);
-    
-    var second = adjustLights(newLights, 100, brokenSwitcher);
-    
-    return [first, second];
+    return neighbors === 3 || (light && neighbors === 2);
+};
+
+// Switcher
+const fixedCornersSwitcher = (lights, r, c) => 
+    isOuterBound(r, lights) && isOuterBound(c, lights);
+
+// Switcher
+const brokenSwitcher = either(fixedCornersSwitcher, simpleSwitcher);
+
+// Switcher
+const passSwitcher = (lights, r, c, light) => light;
+
+// LightGrid -> Number
+const countLights = compose(sum, map(sum));
+
+// Number -> Switcher -> LightGrid -> LightGrid
+const adjustLights = curry((times, switcher, lights) => compose(
+   genHead,
+   genDrop(times),
+   genTransform(
+       iterate(switcher)
+   )
+)(lights));
+
+// LightGrid -> Number
+const p1 = compose(
+    countLights,
+    adjustLights(100, simpleSwitcher)
+);
+
+// LightGrid -> Number
+const p2 =compose(
+    countLights,
+    adjustLights(100, brokenSwitcher),
+    iterate(either(fixedCornersSwitcher, passSwitcher))
+);
+        
+module.exports = {
+    solution: {
+        ps: [p1, p2],
+        type: 'lines',
+        pre: map(c => c === '#')
+    }
 };
