@@ -1,17 +1,9 @@
-var _ = require('lodash');
-require('../shared/polyfills');
+const findMinTarget = (houseGenerator) => (target) => 
+    houseGenerator(target / 10)
+        .map((h, i) => ({ h, i }))
+        .find(h => h && h.h >= target).i;
 
-var target = 34000000,
-    tenthTarget = target / 10;
-    
-var findMinTarget = 
-    houses =>
-        houses.map((h, i) => ({ h: h, i: i })).find(h => h.h >= target).i;
-
-function findFirstHouse() {
-}
-        
-module.exports = () => {
+const p1Houses = (tenthTarget) => {
     var houses = [];
     
     for(var i = 1; i < tenthTarget; i += 1) {
@@ -20,12 +12,28 @@ module.exports = () => {
         }
     }
     
+    return houses;
+}        
+
+const p2Houses = (tenthTarget) => {
     var houses2 = [];
+    
     for (var i = 1; i < tenthTarget; i += 1) {
         for (var j = 1; j <= 50 && (j * i < tenthTarget); j += 1) {
             houses2[j * i] = (houses2[j * i] || 0) + i * 11;
         }
     }
     
-    return [findMinTarget(houses, target), findMinTarget(houses2, target)];
+    return houses2;
+}
+
+const p1 = findMinTarget(p1Houses);
+
+const p2 = findMinTarget(p2Houses);
+
+module.exports = {
+    solution: {
+        ps: [p1, p2],
+        pre: Number
+    }
 };
