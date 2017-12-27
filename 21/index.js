@@ -1,3 +1,6 @@
+const { compose, map, filter, prop, path, complement, sum } = require('ramda');
+const { probe, listMin, listMax } = require('aoc-helpers');
+
 var _ = require('lodash');
 
 var movesToDefeat = 
@@ -57,12 +60,17 @@ function combinations(items, minItems, maxItems) {
     
     return withFirst.concat(withoutFirst);
 }
+
+const total = (p, items) => compose(
+    sum,
+    map(prop(p))
+)(items);
     
 var makePlayer = 
     (items) => ({
-        cost: _.sum(items, i => i.cost),
-        damage: _.sum(items, i => i.damage),
-        armor: _.sum(items, i => i.armor),
+        cost: total('cost', items),
+        damage: total('damage', items),
+        armor: total('armor', items),
         hitPoints: 100
     });
 
@@ -74,17 +82,27 @@ function buildPlayers() {
     return weaponArmorRingCombinations.map(makePlayer);
 }
 
-module.exports = () => {
-    var allPlayers = buildPlayers();
+const allPlayers = buildPlayers();
+const boss = { damage: 8, armor: 1, hitPoints: 104 };
+const results = allPlayers.map(player => ({ player, result: doBattle(player, boss) }));
 
-    var boss = { damage: 8, armor: 2, hitPoints: 109 };
-    var results = allPlayers.map(p => ({ 
-        player: p, 
-        result: doBattle(p, boss) 
-    }));
+const resultPlayerCost = path(['player', 'cost']);
 
-    return [
-        _.min(results.filter(r => r.result), r => r.player.cost).player.cost,
-        _.max(results.filter(r => !r.result), r => r.player.cost).player.cost
-    ];
+const p1 = () => compose(
+    listMin,
+    map(resultPlayerCost),
+    filter(prop('result'))
+)(results);
+
+const p2 = () => compose(
+    listMax,
+    map(resultPlayerCost),
+    filter(complement(prop('result')))
+)(results);
+
+
+module.exports = {
+    solution: {
+        ps: [p1, p2]
+    }    
 };
