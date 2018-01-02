@@ -1,7 +1,7 @@
-const { compose, curry, map, filter, prop } = require('ramda');
+const { compose, curry, map, filter, prop, path, merge, reduce, contains, flatten } = require('ramda');
 
 // ActiveEffect is { name: String, turns: Number }
-// State is { activeEffects: [ActiveEffect], players: { player: Player, opponent: Opponent } }
+// State is { activeEffects: [ActiveEffect], players: { player: Player, opponent: Opponent }, manaUsed: Number }
 
 const spells = [
     {
@@ -15,7 +15,7 @@ const spells = [
         type: 'instant',
         cost: 73,
         action: ({ player: { hp: playerHp }, opponent: { hp: opponentHp} }) => 
-            ({ player: { hp: playerHp + 2 }, opponent: { hp: opponentHp - 2 } });
+            ({ player: { hp: playerHp + 2 }, opponent: { hp: opponentHp - 2 } })
     },
     {
         name: 'Shield',
@@ -36,26 +36,31 @@ const spells = [
         type: 'effect',
         cost: 229,
         duration: 5,
-        action: ({ player: { mana }) => ({ player: { mana: mana + 101 })
+        action: ({ player: { mana } }) => ({ player: { mana: mana + 101 } })
     }
 ];
 
-const spellNames = keys(spells);
-
-const applySpell = (players, spellName) => {
+// Players -> String -> Players
+const applySpell = (players, { name, action, cost }) => {
     const { player, opponent } = players;
-    const { player: playerChange, opponent: opponentChange } = spells[effectName].action(players);
+    const { player: playerChange, opponent: opponentChange } = action(players);
+    
+    console.log(name, playerChange, opponentChange);
+    
     const updatedPlayer = merge(player, playerChange || {});
     const updatedOpponent = merge(opponent, opponentChange || {});
     
     return { player: updatedPlayer, opponent: updatedOpponent };
 }
 
-const applyEffects = ({ activeEffects, players }) => reduce(
-    applyEffect,
-    players,
-    activeEffects
-);
+// State -> State
+const applyEffects = ({ activeEffects, players }) => compose(
+    reduce(
+        applySpell,
+        players
+    ),
+    map(prop('spell'))
+)(activeEffects);
 
 // [ActiveEffect] -> [ActiveEffect]
 const stepEffects = compose(
@@ -69,62 +74,98 @@ const canCast = curry((activeEffectNames, mana, { name, cost }) =>
 
 // [ActiveEffect] -> Number -> [Spell]
 const possibleSpells = (activeEffects, mana) => {
-    const activeEffectNames = map(prop('name'), activeEffects);
+    const activeEffectNames = map(path(['spell', 'name']), activeEffects);
     
     return filter(canCast(activeEffectNames, mana), spells);
 };
 
+const deductMana = (amount, { player, opponent }) => 
+    ({ opponent, player: merge(player, { mana: player.mana - amount }) });
+
+// State -> Spell -> State
+const castSpell = ({ players, activeEffects, manaUsed }, spell) => {
+    const { type, turns, cost } = spell;
+    const newPlayers = type === 'instant' ? applySpell(players, spell) : players;
+    
+    return {
+        players: deductMana(cost, newPlayers),
+        activeEffects: type === 'effect' ? [...activeEffects, { spell, turns }] : activeEffects,
+        manaUsed: manaUsed + cost
+    }
+};
+
+const opponentDefeated = ({ players: { opponent: { hp } } }) => hp <= 0;
+const playerDefeated = ({ players: { player: { hp } } }) => hp <= 0;
+
+const win = ({ manaUsed }) => ({ result: 'win', manaUsed });
+const lose = ({ manaUsed }) => ({ result: 'lose', manaUsed });
+
+// State -> State
+const attackPlayer = state => {
+    const { players: { player, opponent } } = state;
+    const attackedPlayer = merge(player, { hp: player.hp - opponent.damage });
+    
+    return merge(state, { players: { player: attackedPlayer, opponent } });
+};
+
 // State -> Spell -> [Result]
-const applySpellChoice = ({ players, activeEffects, manaUsed }, { type, name, cost }) => {
+const applySpellChoice = curry((state, spell) => {
+    console.log(state);
+    
     // Opponent defeated
-    if (players.opponent.hp <= 0) {
-        return [{ result: 'win', manaUsed }];
+    if (opponentDefeated(state)) {
+        return [win(state)];
     }
 
     // Cast instant spell
-    const { player: playerAfterSpell, opponent: opponentAfterSpell } = type === 'instant'
-        ? applySpell(players, name)
-        : players;
-    
-    // Include new effect
-    const updatedEffects = type = 'effect'
-        ? merge(steppedEffects, { name: spellName, turns: spell.turns }),
-        : steppedEffects;
-        
-    const manaAfterSpell = manaUsed + cost;
+    const afterSpell = castSpell(state, spell);
     
     // Opponent defeated
-    if (opponentAfterSpell.hp <= 0) {
-        return [{ result: 'win', manaUsed: manaAfterSpell }];
+    if (opponentDefeated(afterSpell)) {
+        return [win(afterSpell)];
     }
 
     // Attack player
-    const playerAfterAttack = attackPlayer(playerAfterSpell, opponentAfterSpell);
+    const afterAttack = attackPlayer(afterSpell);
     
-    if (playerAfterAttack.hp <= 0){
-        return [{ result: 'lose', manaUsed: manaAfterSpell }];
+    if (playerDefeated(afterAttack)){
+        return [lose(afterAttack)];
     }
     
     // TODO: reset armor
     
-    return doTurn({ activeEffects: updatedEffects, player: playerAfterAttack, opponent: opponentAfterSpell, manaUsed: manaAfterSpell });
-};
+    return doTurn(afterAttack);
+});
 
-const doTurn = curry((state) => {
+const doTurn = (state) => {
     const players = applyEffects(state);
-    const steppedEffects = stepEffects(state.activeEffects);
+    const activeEffects = stepEffects(state.activeEffects);
     
-    const sp = possibleSpells(steppedEffects, players.player.mana);
-
-    return flatten(map(applySpellChoice({ activeEffects: steppedEffects, players }), sp));
-})
-
-const nextTurn = 
-
-const pickSpells = (state) => {
-    const { activeEffects } = state;
-    const unavailable = unavailableSpells(activeEffects);
-    const available = without(unavailable, spellNames);
+    const sp = possibleSpells(activeEffects, players.player.mana);
     
-    return flatten(map(nextTurn(state), available)); 
+    const results = map(applySpellChoice(merge(state, { activeEffects })), sp);
+
+    return flatten(results);
 };
+
+const initialState = {
+    activeEffects: [], 
+    players: { 
+        player: { hp: 50, mana: 500 }, 
+        opponent: { hp: 51, damage: 9 } 
+    }, 
+    manaUsed: 0 
+};
+
+const p1 = () => compose(
+    filter(r => r.result == 'win'),
+    doTurn
+)(initialState);
+
+const p2 = () => 0;
+
+module.exports = {
+    solution: {
+        ps: [p1, p2]
+    }
+}
