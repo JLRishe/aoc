@@ -7,11 +7,11 @@ const dayContents = require(dayPath);
 const [p1, p2] = prepare(dayContents);
 
 describe(`day ${day}`, () => {
-    it('should work on samples for p1', () => {
+    xit('should work on samples for p1', () => {
         throw new Error('not implemented');
     });
     
-    it('should work on samples for p2', () => {
+    xit('should work on samples for p2', () => {
         throw new Error('not implemented');
     });
 });

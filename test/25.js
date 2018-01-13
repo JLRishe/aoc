@@ -22,8 +22,4 @@ describe(`day ${day}`, () => {
     it('should work on samples for p1', () => {
         assert.equal(p1('To continue, please consult the code grid in the manual.  Enter the code at row 5, column 4.'), 6899651);
     });
-    
-    it('should work on samples for p2', () => {
-        throw new Error('not implemented');
-    });
 });

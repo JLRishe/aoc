@@ -19,7 +19,7 @@ HOHOHO`;
 
     const sampleCompound = ['H', 'O', 'H', 'O', 'H', 'O'];
     
-    it('should work on samples for p1', () => {
+    xit('should work on samples for p1', () => {
         throw new Error('not implemented');
     });
     
